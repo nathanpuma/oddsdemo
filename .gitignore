@@ -1,0 +1,10 @@
+# Build + IDE
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Secrets
+.env
+*.secret
