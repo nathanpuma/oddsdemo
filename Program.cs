@@ -1,8 +1,17 @@
 ﻿using DotNetEnv;
 using System.Text.Json;
 
+
 class Program
 {
+    static decimal MoneylineToDecimal(decimal moneyline)
+    {
+
+        return moneyline >= 0m
+            ? 1m + (moneyline / 100m)
+            : 1m + (100m / Math.Abs(moneyline));
+    }
+
     static async Task Main()
     {
 
@@ -21,6 +30,18 @@ class Program
         using var http = new HttpClient();
 
         var response = await http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"HTTP {(int)response.StatusCode} - {response.ReasonPhrase}");
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            return;
+        }
+
+        if (response.Headers.TryGetValues("x-requests-used", out var used))
+            Console.WriteLine($"Used: {used.First()}");
+        if (response.Headers.TryGetValues("x-requests-remaining", out var rem))
+            Console.WriteLine($"Remaining: {rem.First()}");
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
@@ -42,7 +63,7 @@ class Program
             if (!ev.TryGetProperty("bookmakers", out var books) || books.GetArrayLength() == 0)
             {
                 Console.WriteLine("No bookmakers available for this game");
-                return;
+                continue;
             }
 
             var book = books[0];
@@ -69,11 +90,10 @@ class Program
             {
                 var teamName = o.GetProperty("name").GetString();
                 var teamPrice = o.GetProperty("price").GetDecimal();
+                var teamPriceDecimal = MoneylineToDecimal(teamPrice);
 
-                Console.WriteLine($"{teamName,-25} odds: {teamPrice}");
+                Console.WriteLine($"{teamName,-25} odds: {teamPriceDecimal}");
             }
-
-            shown++;
         }
 
         Console.WriteLine("Done");
